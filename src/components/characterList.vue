@@ -1,19 +1,32 @@
 <template>
-  <div>
-    <ul v-if="state.context.characters">
-      <li v-for="c in state.context.characters" :key="c.id">
-        {{ c.id }}::{{ c.name }}
-      </li>
-    </ul>
+  <div class="flex justify-center">
+    <div
+      v-if="state.context.characters"
+      class="grid grid-cols-2 gap-8 max-w-6xl w-full"
+    >
+      <Character
+        v-for="c in state.context.characters"
+        :key="c.id"
+        :character-ref="c"
+      />
+    </div>
   </div>
 </template>
 
 <script>
-import { useMachine } from '@xstate/vue'
-import { fetchMachine } from './machines/fetch.machine'
+import { useActor } from '@xstate/vue'
+import { Choreo } from '../machines/Choreographer.machine'
+import { characterListRefId } from '../machines/CharacterList.machine'
+import Character from './character.vue'
+
 export default {
+  components: {
+    Character,
+  },
   setup() {
-    const { state, send } = useMachine(fetchMachine)
+    const { state } = useActor(Choreo.state.context.actors[characterListRefId])
+
+    return { state }
   },
 }
 </script>

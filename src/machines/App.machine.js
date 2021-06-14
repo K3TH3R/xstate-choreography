@@ -1,17 +1,56 @@
-import { createMachine } from 'xstate'
+import { assign, createMachine, forwardTo, send } from 'xstate'
+import { invokeWebWorker } from '../workers/invoke-worker'
+import FetcherWorker from '../workers/fetcher?worker'
+import { spawn } from './Choreographer.machine'
+import {
+  characterListMachine,
+  characterListRefId,
+} from './CharacterList.machine'
 
-export const AppMachine = createMachine({
+const state = {
   id: 'appMachine',
   initial: 'idle',
-  context: {},
+  context: {
+    actors: {},
+  },
+  invoke: {
+    id: 'fetcher',
+    src: invokeWebWorker(new FetcherWorker()),
+  },
   states: {
     idle: {
       on: {
         INIT: {
+          target: 'loading',
+          actions: ['init', 'fetchCharacters'],
+        },
+      },
+    },
+    loading: {
+      on: {
+        RECEIVE_CHARACTERS: {
           target: 'running',
+          actions: ['forwardToCharacterList'],
         },
       },
     },
     running: {},
   },
-})
+}
+
+const options = {
+  guards: {},
+  services: {},
+  actions: {
+    init: assign({
+      actors: (ctx) => ({
+        ...ctx.actors,
+        characterList: spawn(characterListMachine, characterListRefId),
+      }),
+    }),
+    fetchCharacters: send({ type: 'FETCH_CHARACTERS' }, { to: 'fetcher' }),
+    forwardToCharacterList: forwardTo(characterListRefId),
+  },
+}
+
+export const appMachine = createMachine(state, options)
