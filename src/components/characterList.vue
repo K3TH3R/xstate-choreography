@@ -2,7 +2,7 @@
   <div class="flex justify-center">
     <div
       v-if="state.context.characters"
-      class="grid grid-cols-4 gap-4 max-w-6xl w-full"
+      class="grid grid-cols-4 gap-8 max-w-6xl w-full"
     >
       <Character
         v-for="c in state.context.characters"

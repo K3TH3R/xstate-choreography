@@ -12,7 +12,7 @@
       border-gray-700 border
     "
   >
-    <div class="flex-row justify-between items-center w-full">
+    <div class="flex-row justify-between items-center w-full h-full">
       <div class="relative">
         <img
           class="w-full h-full"
