@@ -15,7 +15,7 @@
 
 <script>
 import { useActor } from '@xstate/vue'
-import { Choreo } from '../machines/Choreographer.machine'
+import { choreoMachine } from '../machines/Choreographer.machine'
 import { characterListRefId } from '../machines/CharacterList.machine'
 import Character from './character.vue'
 
@@ -24,7 +24,9 @@ export default {
     Character,
   },
   setup() {
-    const { state } = useActor(Choreo.state.context.actors[characterListRefId])
+    const { state } = useActor(
+      choreoMachine.state.context.actors[characterListRefId],
+    )
 
     return { state }
   },

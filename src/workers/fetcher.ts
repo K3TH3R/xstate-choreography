@@ -14,7 +14,6 @@ const fetchMachine = createMachine(
     },
     states: {
       idle: {
-        entry: () => console.log('fetcher idle'),
         on: {
           FETCH_CHARACTERS: {
             target: 'fetching',

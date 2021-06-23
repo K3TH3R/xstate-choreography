@@ -32,17 +32,19 @@ const options = {
   },
 }
 
-const choreoMachine = createMachine(state, options)
+const choreoMachineDef = createMachine(state, options)
 
-export const Choreo = interpret(choreoMachine).onTransition((state) => {
-  // console.log('choreo actors', state.context.actors)
-})
+export const choreoMachine = interpret(choreoMachineDef).onTransition(
+  (state) => {
+    // console.log('choreo actors', state.context.actors)
+  },
+)
 
-Choreo.start()
+choreoMachine.start()
 
 export const spawn = (actorDef, actorId) => {
   const ref = _spawn(actorDef, actorId)
-  Choreo.send({
+  choreoMachine.send({
     type: 'REGISTER_ACTOR',
     data: { ref, id: actorId },
   })

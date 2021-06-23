@@ -1,29 +1,30 @@
 <template>
-  <div class="">
-    <button class="bg-blue-700 text-gray-50 py-2 px-6" @click="send('INIT')">
-      Fetch Characters
-    </button>
-    <div v-if="state.matches('running')">
-      <CharacterList />
+  <div>
+    <div class="py-4 flex justify-center items-center bg-gray-800">
+      <img class="h-8 w-auto pr-4" :src="XStateLogo" alt="Workflow" />
+      <h2 class="text-lg text-gray-50">Choreography Playground</h2>
     </div>
+    <router-view></router-view>
   </div>
 </template>
 
 <script lang="ts">
+// https://reqres.in/api/register
 import { useMachine } from '@xstate/vue'
-import { defineComponent } from 'vue'
-import { appMachine } from './machines/App.machine'
-import CharacterList from './components/characterList.vue'
+import { defineComponent, provide } from 'vue'
+import { appMachineDef } from './machines/App.machine'
+import { choreoMachine } from './machines/Choreographer.machine'
+import XStateLogo from '@/assets/logo-white.svg'
 
 export default defineComponent({
   name: 'App',
-  components: {
-    CharacterList,
-  },
   setup() {
-    const { state, send } = useMachine(appMachine)
+    provide('appMachine', useMachine(appMachineDef))
+    provide('choreoMachine', choreoMachine)
 
-    return { state, send }
+    return {
+      XStateLogo,
+    }
   },
 })
 </script>

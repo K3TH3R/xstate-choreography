@@ -20,6 +20,9 @@ const state = {
   states: {
     idle: {
       on: {
+        LOGIN: {
+          actions: [(ctx, e) => console.log('LOGIN RECEIVED', e)],
+        },
         INIT: {
           target: 'loading',
           actions: ['init', 'fetchCharacters'],
@@ -53,4 +56,4 @@ const options = {
   },
 }
 
-export const appMachine = createMachine(state, options)
+export const appMachineDef = createMachine(state, options)

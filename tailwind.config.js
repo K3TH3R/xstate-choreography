@@ -6,6 +6,7 @@ module.exports = {
   theme: {
     colors: {
       gray: colors.coolGray,
+      orange: colors.amber,
       green: colors.lime,
       red: colors.red,
     },
@@ -14,5 +15,5 @@ module.exports = {
   variants: {
     extend: {},
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/forms')],
 }
