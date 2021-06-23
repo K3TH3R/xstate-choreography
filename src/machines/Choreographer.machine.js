@@ -1,7 +1,9 @@
 import { assign, createMachine, interpret, spawn as _spawn } from 'xstate'
 
+export const choreoMachineId = 'choreographer'
+
 const state = {
-  id: 'choreographer',
+  id: choreoMachineId,
   initial: 'listening',
   context: {
     actors: {},

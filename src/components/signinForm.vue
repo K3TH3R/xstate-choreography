@@ -163,10 +163,11 @@
 
 <script>
 import { inject } from '@vue/runtime-core'
+import { appMachineId } from '../machines/App.machine'
 
 export default {
   setup() {
-    const { state, send } = inject('appMachine')
+    const { state, send } = inject(appMachineId)
 
     return {
       state,

@@ -7,8 +7,10 @@ import {
   characterListRefId,
 } from './CharacterList.machine'
 
+export const appMachineId = 'appMachine'
+
 const state = {
-  id: 'appMachine',
+  id: appMachineId,
   initial: 'idle',
   context: {
     actors: {},
