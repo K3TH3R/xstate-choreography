@@ -6,6 +6,11 @@ import {
   characterListMachine,
   characterListRefId,
 } from './CharacterList.machine'
+import { browserStatusCogDef, browserStatusId } from './cogs/browserStatus.cog'
+import {
+  notificationsMachineId,
+  notificationsMachineDef,
+} from './notifications.machine'
 
 export const appMachineId = 'appMachine'
 
@@ -21,6 +26,7 @@ const state = {
   },
   states: {
     idle: {
+      entry: ['setupActors'],
       on: {
         LOGIN: {
           actions: [(ctx, e) => console.log('LOGIN RECEIVED', e)],
@@ -47,6 +53,15 @@ const options = {
   guards: {},
   services: {},
   actions: {
+    setupActors: assign({
+      actors: (ctx) => ({
+        [browserStatusId]: spawn(browserStatusCogDef, browserStatusId),
+        [notificationsMachineId]: spawn(
+          notificationsMachineDef,
+          notificationsMachineId,
+        ),
+      }),
+    }),
     init: assign({
       actors: (ctx) => ({
         ...ctx.actors,
