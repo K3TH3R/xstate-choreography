@@ -1,16 +1,12 @@
 <template>
   <div>
-    <CharacterList />
+    <h1>Dashboard</h1>
   </div>
 </template>
 
 <script>
-import CharacterList from '../components/characterList.vue'
-
 export default {
-  components: {
-    CharacterList,
-  },
+  components: {},
   setup() {
     return {}
   },

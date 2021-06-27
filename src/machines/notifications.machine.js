@@ -1,131 +1,167 @@
 import { createMachine, spawn, assign, send } from 'xstate'
-import { choreoMachine } from './Choreographer.machine'
-import { browserStatusId } from './cogs/browserStatus.cog'
 
-const notificationMessageDef = createMachine(
-  {
-    id: 'message',
-    initial: 'running',
-    context: {
-      duration: 5000,
-      elapsed: 0,
-      interval: 250,
-    },
-    states: {
-      running: {
-        invoke: {
-          id: 'counter',
-          src: 'counter',
-          onDone: {
+const notificationMessageDef = createMachine({
+  id: 'message',
+  initial: 'running',
+  context: {
+    duration: 5000,
+    timerWidth: 0,
+    elapsed: 0,
+    interval: 100,
+    message: null,
+  },
+  states: {
+    running: {
+      invoke: {
+        src: (ctx) => (sendSelf) => {
+          const interval = setInterval(() => {
+            sendSelf('TICK')
+          }, ctx.interval)
+
+          return () => clearInterval(interval)
+        },
+      },
+      on: {
+        TICK: [
+          {
+            cond: (ctx) => ctx.elapsed >= ctx.duration,
             target: 'complete',
           },
-        },
-        on: {
-          TICK: [
-            {
-              cond: 'hasExpired',
-              target: 'complete',
-            },
-            {
-              actions: 'updateDuration',
-            },
-          ],
-        },
+          {
+            actions: assign({
+              elapsed: (ctx) => ctx.elapsed + ctx.interval,
+              timerWidth: (ctx) => 100 - (ctx.elapsed / ctx.duration) * 100,
+            }),
+          },
+        ],
       },
-      complete: {
-        type: 'final',
-      },
+    },
+    complete: {
+      type: 'final',
     },
   },
-  {
-    guards: {
-      hasExpired: (ctx) => ctx.elapsed >= ctx.duration,
-    },
-    services: {
-      counter: (ctx) => (cb) => {
-        const interval = setInterval(() => {
-          cb('TICK')
-        }, ctx.interval)
-
-        return () => clearInterval(interval)
-      },
-    },
-    actions: {
-      updateDuration: assign({
-        duration: (ctx) => ctx.duration + ctx.interval,
-      }),
-    },
-  },
-)
+})
 
 export const notificationsMachineId = 'notifications'
 
-export const notificationsMachineDef = createMachine(
+export const notificationsMachine = createMachine(
   {
     id: notificationsMachineId,
     initial: 'idle',
     context: {
-      appIsActive: true,
       queue: [],
+      shown: [],
     },
-    on: {
-      UPDATE_BROWSER_STATUS: {
-        actions: ['updateAppStatus'],
+    invoke: {
+      src: (ctx) => (sendSelf) => {
+        function blitzNotifications() {
+          let count = 0
+          const blitzInterval = setInterval(() => {
+            sendSelf({
+              type: 'ADD_TO_QUEUE',
+              data: {
+                msg: 'This is a new message',
+                createdAt: Date.now(),
+              },
+            })
+            if (++count >= 5) {
+              console.log('blitz cleared')
+              clearInterval(blitzInterval)
+            }
+          }, 1000)
+        }
+
+        blitzNotifications()
+        const minuteInterval = setInterval(() => {
+          blitzNotifications()
+        }, 60000)
+
+        return () => clearInterval(minuteInterval)
       },
     },
     states: {
       idle: {
-        entry: ['subscribeToBrowserUpdates'],
         on: {
           ADD_TO_QUEUE: {
-            target: 'canShowMessages',
+            target: 'showNotification',
             actions: 'addItemToQueue',
           },
         },
       },
-      canShowMessages: {
+      showNotification: {
+        on: {
+          ADD_TO_QUEUE: {
+            actions: 'addItemToQueue',
+          },
+        },
+        invoke: {
+          src: 'showOldestItemInQueue',
+          onDone: {
+            target: 'checkForRemainingItems',
+            actions: ['removeOldestItemInQueue'],
+          },
+          onError: {
+            target: 'awaitingRetry',
+          },
+        },
+      },
+      awaitingRetry: {
+        on: {
+          ADD_TO_QUEUE: {
+            target: 'showNotification',
+            actions: 'addItemToQueue',
+          },
+        },
+        after: {
+          1000: 'showNotification',
+        },
+      },
+      checkForRemainingItems: {
+        on: {
+          ADD_TO_QUEUE: {
+            actions: 'addItemToQueue',
+          },
+        },
         always: [
           {
-            cond: 'canShow',
-            target: 'showingMessage',
+            cond: 'hasRemainingItems',
+            target: 'showNotification',
           },
           {
             target: 'idle',
           },
         ],
       },
-      showingMessage: {
-        on: {
-          ADD_TO_QUEUE: {
-            actions: 'addItemToQueue',
-          },
-        },
-      },
     },
   },
   {
     guards: {
-      canShow: (ctx) => ctx.queue.length > 1 && ctx.appIsActive,
+      hasRemainingItems: (ctx) => ctx.queue.length > 0,
+    },
+    services: {
+      showOldestItemInQueue: (ctx) =>
+        notificationMessageDef.withContext({
+          ...notificationMessageDef.context,
+          message: { ...ctx.queue[0] },
+        }),
     },
     actions: {
-      subscribeToBrowserUpdates: send(
-        {
-          type: 'SUBSCRIBE_TO_ACTOR',
-          data: {
-            actorId: browserStatusId,
-          },
-        },
-        { to: choreoMachine },
-      ),
       addItemToQueue: assign({
-        queue: (ctx, event, meta) => {
-          console.log('item added to queue', event, meta)
-          return [...ctx.queue, spawn(notificationMessageDef)]
+        queue: (ctx, { data }) => {
+          return [
+            ...ctx.queue,
+            {
+              ...data,
+              receivedAt: Date.now(),
+            },
+          ]
         },
       }),
-      updateAppStatus: assign({
-        appIsActive: (ctx, { data }) =>
-          data.online && data.visible && data.focused,
+      removeOldestItemInQueue: assign({
+        queue: (ctx) => {
+          const [, ...newQueue] = ctx.queue
+          return newQueue
+        },
       }),
     },
   },

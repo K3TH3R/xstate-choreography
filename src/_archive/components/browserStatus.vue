@@ -3,14 +3,14 @@
 </template>
 
 <script>
-import { browserStatusMachineId } from '../machines/browserStatus.machine'
-import { getActor } from '../machines/choreographer.machine'
+import { getActor } from '../machines/Choreographer.machine'
+import { browserStatusId } from '../machines/cogs/browserStatus.cog'
 import { useActor } from '@xstate/vue'
 import { computed } from '@vue/runtime-core'
 
 export default {
   setup() {
-    const { state } = useActor(getActor(browserStatusMachineId))
+    const { state } = useActor(getActor(browserStatusId))
     const appStatus = computed(() => {
       if (!state.value.context.online) {
         return `The network appears to be down`
@@ -23,7 +23,7 @@ export default {
     })
 
     return {
-      // state,
+      state,
       appStatus,
     }
   },

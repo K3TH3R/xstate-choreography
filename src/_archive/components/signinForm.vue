@@ -133,9 +133,7 @@
               transition-colors
               hover:bg-orange-700
               focus:outline-none
-              focus:ring-2
-              focus:ring-offset-2
-              focus:ring-orange-500
+              focus:ring-2 focus:ring-offset-2 focus:ring-orange-500
             "
             @click="send('LOGIN')"
           >
@@ -164,16 +162,17 @@
 </template>
 
 <script>
-// import { inject } from '@vue/runtime-core'
-// import { appMachineId } from '../machines/app.machine'
+import { inject } from '@vue/runtime-core'
+import { appMachineId } from '../machines/App.machine'
 
 export default {
   setup() {
-    // const { state, send } = inject(appMachineId)
-    // return {
-    //   state,
-    //   send,
-    // }
+    const { state, send } = inject(appMachineId)
+
+    return {
+      state,
+      send,
+    }
   },
 }
 </script>

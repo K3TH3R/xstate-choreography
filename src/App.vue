@@ -8,31 +8,35 @@
       <BrowserStatus />
     </div>
     <router-view></router-view>
+    <Notifications />
   </div>
 </template>
 
 <script lang="ts">
 // https://reqres.in/api/register
-import { useMachine } from '@xstate/vue'
 import { defineComponent, provide } from 'vue'
-import { appMachineDef, appMachineId } from './machines/App.machine'
-import {
-  choreoMachine,
-  choreoMachineId,
-} from './machines/Choreographer.machine'
 import XStateLogo from '@/assets/logo-white.svg'
+import { useMachine } from '@xstate/vue'
+import { appMachine } from './machines/app.machine'
+import {
+  choreographerMachine,
+  choreographerMachineId,
+} from './machines/choreographer.machine'
 import BrowserStatus from './components/browserStatus.vue'
+import Notifications from './components/notifications.vue'
 
 export default defineComponent({
   components: {
     BrowserStatus,
+    Notifications,
   },
   setup() {
-    provide(appMachineId, useMachine(appMachineDef))
-    provide(choreoMachineId, choreoMachine)
+    const app = useMachine(appMachine)
+    provide(choreographerMachineId, choreographerMachine)
 
     return {
       XStateLogo,
+      app,
     }
   },
 })
