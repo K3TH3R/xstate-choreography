@@ -1,4 +1,5 @@
-import { createMachine, spawn, assign, send } from 'xstate'
+import { sendParent, createMachine, assign, spawn } from 'xstate'
+import { respond } from 'xstate/lib/actions'
 
 const notificationMessageDef = createMachine({
   id: 'message',
@@ -22,6 +23,7 @@ const notificationMessageDef = createMachine({
         },
       },
       on: {
+        DISMISS: 'complete',
         TICK: [
           {
             cond: (ctx) => ctx.elapsed >= ctx.duration,
@@ -38,6 +40,7 @@ const notificationMessageDef = createMachine({
     },
     complete: {
       type: 'final',
+      entry: sendParent('NOTIFICATION_DONE'),
     },
   },
 })
@@ -50,10 +53,10 @@ export const notificationsMachine = createMachine(
     initial: 'idle',
     context: {
       queue: [],
-      shown: [],
+      showing: [],
     },
     invoke: {
-      src: (ctx) => (sendSelf) => {
+      src: () => (sendSelf) => {
         function blitzNotifications() {
           let count = 0
           const blitzInterval = setInterval(() => {
@@ -62,6 +65,7 @@ export const notificationsMachine = createMachine(
               data: {
                 msg: 'This is a new message',
                 createdAt: Date.now(),
+                type: Math.random() > 0.5 ? 'success' : 'error',
               },
             })
             if (++count >= 5) {
@@ -72,95 +76,105 @@ export const notificationsMachine = createMachine(
         }
 
         blitzNotifications()
-        const minuteInterval = setInterval(() => {
-          blitzNotifications()
-        }, 60000)
+        // const minuteInterval = setInterval(() => {
+        //   blitzNotifications()
+        // }, 60000)
 
-        return () => clearInterval(minuteInterval)
+        // return () => clearInterval(minuteInterval)
       },
     },
     states: {
       idle: {
         on: {
           ADD_TO_QUEUE: {
-            target: 'showNotification',
+            target: 'spawnNotification',
             actions: 'addItemToQueue',
           },
+          NOTIFICATION_DONE: [
+            {
+              cond: 'hasItemsInQueue',
+              target: 'spawnNotification',
+              actions: ['removeOldestNotification'],
+            },
+            {
+              actions: ['removeOldestNotification'],
+            },
+          ],
         },
       },
-      showNotification: {
-        on: {
-          ADD_TO_QUEUE: {
-            actions: 'addItemToQueue',
-          },
-        },
-        invoke: {
-          src: 'showOldestItemInQueue',
-          onDone: {
-            target: 'checkForRemainingItems',
-            actions: ['removeOldestItemInQueue'],
-          },
-          onError: {
-            target: 'awaitingRetry',
-          },
-        },
-      },
-      awaitingRetry: {
-        on: {
-          ADD_TO_QUEUE: {
-            target: 'showNotification',
-            actions: 'addItemToQueue',
-          },
-        },
-        after: {
-          1000: 'showNotification',
-        },
-      },
-      checkForRemainingItems: {
-        on: {
-          ADD_TO_QUEUE: {
-            actions: 'addItemToQueue',
-          },
-        },
+      spawnNotification: {
+        entry: ['showOldestItemInQueue', 'removeOldestItemFromQueue'],
         always: [
           {
-            cond: 'hasRemainingItems',
-            target: 'showNotification',
+            cond: 'isShowingMaxAllowedItems',
+            target: 'waitToShowNextItem',
+          },
+          {
+            cond: 'hasItemsInQueue',
+            target: 'spawnNotification',
           },
           {
             target: 'idle',
           },
         ],
       },
+      waitToShowNextItem: {
+        on: {
+          ADD_TO_QUEUE: {
+            actions: ['addItemToQueue'],
+          },
+          NOTIFICATION_DONE: [
+            {
+              cond: 'hasItemsInQueue',
+              target: 'spawnNotification',
+              actions: ['removeOldestNotification'],
+            },
+            {
+              target: 'idle',
+              actions: ['removeOldestNotification'],
+            },
+          ],
+        },
+      },
     },
   },
   {
     guards: {
-      hasRemainingItems: (ctx) => ctx.queue.length > 0,
+      isShowingMaxAllowedItems: (ctx) => ctx.showing.length > 1,
+      hasItemsInQueue: (ctx) => ctx.queue.length > 0,
     },
-    services: {
-      showOldestItemInQueue: (ctx) =>
-        notificationMessageDef.withContext({
-          ...notificationMessageDef.context,
-          message: { ...ctx.queue[0] },
-        }),
-    },
+    services: {},
     actions: {
       addItemToQueue: assign({
-        queue: (ctx, { data }) => {
-          return [
-            ...ctx.queue,
-            {
-              ...data,
-              receivedAt: Date.now(),
-            },
-          ]
-        },
+        queue: (ctx, { data }) => [
+          ...ctx.queue,
+          {
+            ...data,
+            receivedAt: Date.now(),
+          },
+        ],
       }),
-      removeOldestItemInQueue: assign({
+      removeOldestItemFromQueue: assign({
         queue: (ctx) => {
           const [, ...newQueue] = ctx.queue
           return newQueue
+        },
+      }),
+      showOldestItemInQueue: assign({
+        showing: (ctx) => [
+          ...ctx.showing,
+          spawn(
+            notificationMessageDef.withContext({
+              ...notificationMessageDef.context,
+              message: { ...ctx.queue[0] },
+            }),
+          ),
+        ],
+      }),
+      removeOldestNotification: assign({
+        showing: (ctx, event) => {
+          ctx.showing[0].stop()
+          return ctx.showing.length === 2 ? [ctx.showing[1]] : []
         },
       }),
     },

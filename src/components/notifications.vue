@@ -1,23 +1,13 @@
 <template>
-  <div class="fixed left-0 right-0 bottom-2 flex justify-center" v-if="message">
-    <div class="relative w-64 bg-orange-800 px-4 py-2 overflow-hidden">
-      <div class="relative z-10 text-gray-50 text-sm text-center w-full">
-        {{ message.context.message.msg }}::{{
-          message.context.message.createdAt
-        }}
-      </div>
-      <div
-        class="
-          absolute
-          z-0
-          inset-0
-          bg-orange-900
-          transform
-          -translate-x-0
-          transition-transform
-        "
-        :style="`--tw-translate-x: ${timerWidth}%;`"
-      ></div>
+  <div class="fixed left-0 right-0 bottom-2 flex justify-center">
+    <div class="flex flex-col w-64" v-if="messages">
+      <transition-group name="fade">
+        <NotificationMessage
+          v-for="msg in messages"
+          :key="msg.state.context.message.createdAt"
+          :message-actor="msg"
+        />
+      </transition-group>
     </div>
   </div>
 </template>
@@ -27,32 +17,32 @@ import { notificationsMachineId } from '../machines/notifications.machine'
 import { getActor } from '../machines/choreographer.machine'
 import { useActor } from '@xstate/vue'
 import { computed } from '@vue/runtime-core'
+import NotificationMessage from './notificationMessage.vue'
 
 export default {
+  components: {
+    NotificationMessage,
+  },
   setup() {
     const { state } = useActor(getActor(notificationsMachineId))
-    const message = computed(() => {
-      if ('showOldestItemInQueue' in state.value.children) {
-        const { state: messageState } = useActor(
-          state.value.children.showOldestItemInQueue,
-        )
-        return messageState.value
-      }
-      return null
-    })
-    const timerWidth = computed(() => message.value.context.timerWidth)
+    const messages = computed(() => state.value.context.showing)
 
     return {
       state,
-      message,
-      timerWidth,
+      messages,
     }
   },
 }
 </script>
 
 <style>
-.visualTimer {
-  transition: bo;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

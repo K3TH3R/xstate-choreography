@@ -31,7 +31,9 @@ export default defineComponent({
     Notifications,
   },
   setup() {
-    const app = useMachine(appMachine)
+    const app = useMachine(appMachine, {
+      devTools: true,
+    })
     provide(choreographerMachineId, choreographerMachine)
 
     return {
