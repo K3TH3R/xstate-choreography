@@ -79,7 +79,11 @@ export const browserStatusCogDef = createMachine(
         },
         on: {
           UPDATE_BROWSER_STATUS: {
-            actions: ['storeUpdatedStatus', 'notifySubscribers'],
+            actions: [
+              'storeUpdatedStatus',
+              'notifySubscribers',
+              // (ctx) => console.log('UPDATE_BROWSER_STATUS', ctx),
+            ],
           },
         },
       },

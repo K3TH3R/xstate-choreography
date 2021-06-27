@@ -70,8 +70,7 @@ export const notificationsMachineDef = createMachine(
     },
     on: {
       UPDATE_BROWSER_STATUS: {
-        actions: (ctx, event) =>
-          console.log('NOTIFICATIONS::Browser Status Updated', event),
+        actions: ['updateAppStatus'],
       },
     },
     states: {
@@ -123,6 +122,10 @@ export const notificationsMachineDef = createMachine(
           console.log('item added to queue', event, meta)
           return [...ctx.queue, spawn(notificationMessageDef)]
         },
+      }),
+      updateAppStatus: assign({
+        appIsActive: (ctx, { data }) =>
+          data.online && data.visible && data.focused,
       }),
     },
   },
