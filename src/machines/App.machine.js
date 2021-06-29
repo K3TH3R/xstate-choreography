@@ -1,5 +1,4 @@
-import { assign, createMachine, send, spawn } from 'xstate'
-import { pure } from 'xstate/lib/actions'
+import { assign, createMachine } from 'xstate'
 import {
   browserStatusMachine,
   browserStatusMachineId,
@@ -8,9 +7,20 @@ import {
   notificationsMachine,
   notificationsMachineId,
 } from './notifications.machine'
-import { choreographerMachine } from './choreographer.machine'
+import { registerActors } from './choreographer.machine'
 
 export const appMachineId = 'appMachine'
+
+const actorConfig = [
+  {
+    def: browserStatusMachine,
+    id: browserStatusMachineId,
+  },
+  {
+    def: notificationsMachine,
+    id: notificationsMachineId,
+  },
+]
 
 export const appMachine = createMachine(
   {
@@ -21,35 +31,24 @@ export const appMachine = createMachine(
     },
     states: {
       idle: {
-        entry: ['setupActors', 'registerActors'],
+        entry: ['registerActors'],
+        on: {
+          RETURN_ACTOR_REF: {
+            actions: ['storeActorRef', (ctx) => console.log('RETURNED', ctx)],
+          },
+        },
       },
     },
   },
   {
     actions: {
-      setupActors: assign({
-        actors: () => ({
-          [browserStatusMachineId]: spawn(
-            browserStatusMachine,
-            browserStatusMachineId,
-          ),
-          [notificationsMachineId]: spawn(
-            notificationsMachine,
-            notificationsMachineId,
-          ),
+      registerActors: registerActors(actorConfig),
+      storeActorRef: assign({
+        actors: (ctx, { data }) => ({
+          ...ctx.actors,
+          [data.id]: data.ref,
         }),
       }),
-      registerActors: pure((ctx) =>
-        Object.entries(ctx.actors).map(([id, ref]) =>
-          send(
-            {
-              type: 'REGISTER_ACTOR',
-              data: { ref, id },
-            },
-            { to: choreographerMachine },
-          ),
-        ),
-      ),
     },
   },
 )

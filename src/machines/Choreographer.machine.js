@@ -1,4 +1,5 @@
-import { assign, spawn as _spawn, createMachine, interpret } from 'xstate'
+import { assign, spawn, createMachine, interpret, send } from 'xstate'
+import { respond, pure } from 'xstate/lib/actions'
 
 export const choreographerMachineId = 'choreographer'
 
@@ -10,8 +11,8 @@ const choreographerMachineDef = createMachine(
       actors: {},
     },
     on: {
-      REGISTER_ACTOR: {
-        actions: ['storeActorRef'],
+      SPAWN_GLOBAL_ACTOR: {
+        actions: ['spawnActor', 'returnActor'],
       },
     },
     states: {
@@ -20,26 +21,24 @@ const choreographerMachineDef = createMachine(
   },
   {
     actions: {
-      storeActorRef: assign({
+      spawnActor: assign({
         actors: (ctx, { data }) => {
-          if (ctx.actors[data.id]) {
-            return {
-              ...ctx.actors,
-              [data.id]: {
-                subscribers: [...ctx.actors[data.id].subscribers],
-                ref: data.ref,
-              },
-            }
-          }
           return {
             ...ctx.actors,
             [data.id]: {
               subscribers: [],
-              ref: data.ref,
+              ref: spawn(data.def, data.id),
             },
           }
         },
       }),
+      returnActor: respond((ctx, { data }) => ({
+        type: 'RETURN_ACTOR_REF',
+        data: {
+          ref: ctx.actors[data.id].ref,
+          id: data.id,
+        },
+      })),
     },
   },
 )
@@ -54,3 +53,16 @@ export const choreographerMachine = interpret(choreographerMachineDef)
 
 export const getActor = (actorId) =>
   choreographerMachine.state.context.actors[actorId].ref
+
+export const registerActors = (actorConfig) =>
+  pure(() =>
+    actorConfig.map(({ def, id }) =>
+      send(
+        {
+          type: 'SPAWN_GLOBAL_ACTOR',
+          data: { def, id },
+        },
+        { to: choreographerMachine },
+      ),
+    ),
+  )
