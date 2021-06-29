@@ -18,12 +18,12 @@ import { defineComponent, provide } from 'vue'
 import XStateLogo from '@/assets/logo-white.svg'
 import { useMachine } from '@xstate/vue'
 import { appMachine } from './machines/app.machine'
+import BrowserStatus from './components/browserStatus.vue'
+import Notifications from './components/notifications.vue'
 import {
   choreographerMachine,
   choreographerMachineId,
 } from './machines/choreographer.machine'
-import BrowserStatus from './components/browserStatus.vue'
-import Notifications from './components/notifications.vue'
 
 export default defineComponent({
   components: {

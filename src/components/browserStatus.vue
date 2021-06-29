@@ -23,7 +23,6 @@ export default {
     })
 
     return {
-      // state,
       appStatus,
     }
   },

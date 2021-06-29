@@ -1,22 +1,25 @@
 <template>
   <div class="fixed left-0 right-0 bottom-2 flex justify-center">
     <div class="flex flex-col w-64" v-if="messages">
-      <transition-group name="fade">
+      <!-- <transition-group name="fade">
         <NotificationMessage
           v-for="msg in messages"
           :key="msg.state.context.message.createdAt"
           :message-actor="msg"
         />
-      </transition-group>
+      </transition-group> -->
     </div>
   </div>
 </template>
 
 <script>
 import { notificationsMachineId } from '../machines/notifications.machine'
-import { getActor } from '../machines/choreographer.machine'
+import {
+  choreographerMachineId,
+  getActor,
+} from '../machines/choreographer.machine'
 import { useActor } from '@xstate/vue'
-import { computed } from '@vue/runtime-core'
+import { computed, inject, onMounted, watch } from '@vue/runtime-core'
 import NotificationMessage from './notificationMessage.vue'
 
 export default {
@@ -25,10 +28,12 @@ export default {
   },
   setup() {
     const { state } = useActor(getActor(notificationsMachineId))
-    const messages = computed(() => state.value.context.showing)
+    const messages = computed(() => {
+      console.log('notifications', state.value.context)
+      return state.value.context.showing
+    })
 
     return {
-      state,
       messages,
     }
   },

@@ -1,5 +1,6 @@
-import { sendParent, createMachine, assign, spawn } from 'xstate'
-import { respond } from 'xstate/lib/actions'
+import { sendParent, createMachine, assign, spawn, send } from 'xstate'
+import { browserStatusMachineId } from './browserStatus.machine'
+import { choreographerMachine } from './choreographer.machine'
 
 const notificationMessageDef = createMachine({
   id: 'message',
@@ -50,7 +51,7 @@ export const notificationsMachineId = 'notifications'
 export const notificationsMachine = createMachine(
   {
     id: notificationsMachineId,
-    initial: 'idle',
+    initial: 'boot',
     context: {
       queue: [],
       showing: [],
@@ -84,11 +85,24 @@ export const notificationsMachine = createMachine(
       },
     },
     states: {
+      boot: {
+        on: {
+          START: 'started',
+        },
+      },
+      started: {
+        entry: ['subscribeToBrowserStatusActor'],
+        on: {
+          SUBSCRIBE_SUCCESSFUL: {
+            target: 'idle',
+          },
+        },
+      },
       idle: {
         on: {
           ADD_TO_QUEUE: {
             target: 'spawnNotification',
-            actions: 'addItemToQueue',
+            actions: ['addItemToQueue'],
           },
           NOTIFICATION_DONE: [
             {
@@ -100,10 +114,18 @@ export const notificationsMachine = createMachine(
               actions: ['removeOldestNotification'],
             },
           ],
+          UPDATED_BROWSER_STATUS: {
+            target: 'spawnNotification',
+            actions: ['createBrowserStatusNotification'],
+          },
         },
       },
       spawnNotification: {
-        entry: ['showOldestItemInQueue', 'removeOldestItemFromQueue'],
+        entry: [
+          'showOldestItemInQueue',
+          'removeOldestItemFromQueue',
+          // ({ showing }) => console.log('spawningNotification', showing),
+        ],
         always: [
           {
             cond: 'isShowingMaxAllowedItems',
@@ -145,12 +167,20 @@ export const notificationsMachine = createMachine(
     },
     services: {},
     actions: {
+      subscribeToBrowserStatusActor: send(
+        () => ({
+          type: 'SUBSCRIBE_TO_ACTOR',
+          data: {
+            actorId: browserStatusMachineId,
+          },
+        }),
+        { to: choreographerMachine },
+      ),
       addItemToQueue: assign({
         queue: (ctx, { data }) => [
           ...ctx.queue,
           {
             ...data,
-            receivedAt: Date.now(),
           },
         ],
       }),
@@ -175,6 +205,32 @@ export const notificationsMachine = createMachine(
         showing: (ctx, event) => {
           ctx.showing[0].stop()
           return ctx.showing.length === 2 ? [ctx.showing[1]] : []
+        },
+      }),
+      createBrowserStatusNotification: assign({
+        queue: (ctx, { data }) => {
+          let msg = 'The browser is active and online'
+          let type = 'success'
+
+          if (!data.online) {
+            msg = 'The network appears to be down'
+            type = 'error'
+          } else if (!data.visible) {
+            msg = 'The browser is not currently visible'
+            type = 'warning'
+          } else if (!data.focused) {
+            msg = 'The browser is not currently focused'
+            type = 'warning'
+          }
+
+          return [
+            ...ctx.queue,
+            {
+              msg,
+              type,
+              createdAt: Date.now(),
+            },
+          ]
         },
       }),
     },

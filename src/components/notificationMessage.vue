@@ -12,11 +12,7 @@
       shadow-lg
       border border-solid
     "
-    :class="[
-      state.context.message.type === 'success'
-        ? 'bg-positive-800 border-positive-700'
-        : 'bg-negative-800 border-negative-700',
-    ]"
+    :class="messageClasses.container"
   >
     <div class="relative z-10 text-gray-50 text-sm text-center w-full">
       {{ state.context.message.msg }}
@@ -38,11 +34,7 @@
         transition-transform
         opacity-75
       "
-      :class="[
-        state.context.message.type === 'success'
-          ? 'bg-positive-900'
-          : 'bg-negative-900',
-      ]"
+      :class="messageClasses.timer"
       :style="`--tw-translate-x: ${state.context.timerWidth}%;`"
     ></div>
   </div>
@@ -50,6 +42,8 @@
 
 <script>
 import { useActor } from '@xstate/vue'
+import { reactive } from '@vue/runtime-core'
+
 export default {
   props: {
     messageActor: {
@@ -59,10 +53,32 @@ export default {
   },
   setup(props) {
     const { state, send } = useActor(props.messageActor)
+    const { type } = state.value.context.message
+    let messageClasses
+
+    console.log('MESSAGE COMPONENT CREATED')
+
+    if (type === 'success') {
+      messageClasses = reactive({
+        container: 'bg-positive-800 border-positive-700',
+        timer: 'bg-positive-900',
+      })
+    } else if (type === 'warning') {
+      messageClasses = reactive({
+        container: 'bg-warning-800 border-warning-700',
+        timer: 'bg-warning-900',
+      })
+    } else {
+      messageClasses = reactive({
+        container: 'bg-negative-800 border-negative-700',
+        timer: 'bg-negative-900',
+      })
+    }
 
     return {
       state,
       send,
+      messageClasses,
     }
   },
 }

@@ -1,4 +1,5 @@
 import { assign, createMachine } from 'xstate'
+import { send, pure } from 'xstate/lib/actions'
 import {
   browserStatusMachine,
   browserStatusMachineId,
@@ -25,22 +26,41 @@ const actorConfig = [
 export const appMachine = createMachine(
   {
     id: appMachineId,
-    initial: 'idle',
+    initial: 'boot',
     context: {
       actors: {},
     },
     states: {
-      idle: {
+      boot: {
         entry: ['registerActors'],
         on: {
           RETURN_ACTOR_REF: {
-            actions: ['storeActorRef', (ctx) => console.log('RETURNED', ctx)],
+            target: 'canStart',
+            actions: 'storeActorRef',
           },
         },
+      },
+      canStart: {
+        always: [
+          {
+            cond: 'hasSpawnedAllActors',
+            target: 'started',
+          },
+          {
+            target: 'boot',
+          },
+        ],
+      },
+      started: {
+        entry: ['startActors'],
       },
     },
   },
   {
+    guards: {
+      hasSpawnedAllActors: ({ actors }) =>
+        Object.keys(actors).length === actorConfig.length,
+    },
     actions: {
       registerActors: registerActors(actorConfig),
       storeActorRef: assign({
@@ -49,6 +69,9 @@ export const appMachine = createMachine(
           [data.id]: data.ref,
         }),
       }),
+      startActors: pure(({ actors }) =>
+        Object.entries(actors).map(([, ref]) => send('START', { to: ref })),
+      ),
     },
   },
 )

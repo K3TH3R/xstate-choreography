@@ -1,3 +1,4 @@
+import { useInterpret } from '@xstate/vue'
 import { assign, spawn, createMachine, interpret, send } from 'xstate'
 import { respond, pure } from 'xstate/lib/actions'
 
@@ -6,17 +7,23 @@ export const choreographerMachineId = 'choreographer'
 const choreographerMachineDef = createMachine(
   {
     id: choreographerMachineId,
-    initial: 'idle',
+    initial: 'listening',
     context: {
       actors: {},
     },
     on: {
       SPAWN_GLOBAL_ACTOR: {
-        actions: ['spawnActor', 'returnActor'],
+        actions: ['spawnActor', 'respondWithActorRef'],
+      },
+      SUBSCRIBE_TO_ACTOR: {
+        actions: ['addSubscriberToActor', 'respondToSubscriptionRequest'],
+      },
+      NOTIFY_SUBSCRIBERS: {
+        actions: ['notifySubscribers'],
       },
     },
     states: {
-      idle: {},
+      listening: {},
     },
   },
   {
@@ -32,16 +39,42 @@ const choreographerMachineDef = createMachine(
           }
         },
       }),
-      returnActor: respond((ctx, { data }) => ({
+      respondWithActorRef: respond((ctx, { data }) => ({
         type: 'RETURN_ACTOR_REF',
         data: {
           ref: ctx.actors[data.id].ref,
           id: data.id,
         },
       })),
+      addSubscriberToActor: assign({
+        actors: ({ actors }, { data }, { _event }) => {
+          const { origin } = _event
+          const { actorId } = data
+          const { ref, subscribers } = actors[actorId]
+
+          return {
+            ...actors,
+            [actorId]: {
+              ref: ref,
+              subscribers: subscribers.length
+                ? [...subscribers, origin]
+                : [origin],
+            },
+          }
+        },
+      }),
+      respondToSubscriptionRequest: respond('SUBSCRIBE_SUCCESSFUL'),
+      notifySubscribers: pure(({ actors }, { publisherId, payload }) => {
+        const { subscribers } = actors[publisherId]
+        return subscribers.map((subscriber) =>
+          send(payload, { to: subscriber }),
+        )
+      }),
     },
   },
 )
+
+// export const choreographerMachine = useInterpret(choreographerMachineDef)
 
 export const choreographerMachine = interpret(choreographerMachineDef)
   .onTransition((state) => {
