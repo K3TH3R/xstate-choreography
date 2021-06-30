@@ -1,6 +1,7 @@
 import { sendParent, createMachine, assign, spawn, send } from 'xstate'
 import { browserStatusMachineId } from './browserStatus.machine'
 import { choreographerMachine } from './choreographer.machine'
+import { fetchServiceWorkerId } from './ServiceWorkerIds'
 
 const notificationMessageDef = createMachine({
   id: 'message',
@@ -86,7 +87,10 @@ export const notificationsMachine = createMachine(
     },
     states: {
       boot: {
-        entry: ['subscribeToBrowserStatusActor'],
+        entry: [
+          'subscribeToBrowserStatusActor',
+          'subscribeToFetchServiceWorker',
+        ],
         on: {
           SUBSCRIBE_SUCCESSFUL: {
             target: 'idle',
@@ -94,7 +98,6 @@ export const notificationsMachine = createMachine(
         },
       },
       idle: {
-        entry: () => console.log('notifications idle'),
         on: {
           ADD_TO_QUEUE: {
             target: 'spawnNotification',
@@ -112,10 +115,11 @@ export const notificationsMachine = createMachine(
           ],
           UPDATED_BROWSER_STATUS: {
             target: 'spawnNotification',
-            actions: [
-              'createBrowserStatusNotification',
-              () => console.log('idle::UPDATED_BROWSER_STATUS CAUGHT'),
-            ],
+            actions: ['createBrowserStatusNotification'],
+          },
+          UPDATED_FETCHER_STATUS: {
+            target: 'spawnNotification',
+            actions: ['addItemToQueue'],
           },
         },
       },
@@ -141,13 +145,10 @@ export const notificationsMachine = createMachine(
             actions: ['addItemToQueue'],
           },
           UPDATED_BROWSER_STATUS: {
-            actions: [
-              'createBrowserStatusNotification',
-              () =>
-                console.log(
-                  'waitToShowNextItem::UPDATED_BROWSER_STATUS CAUGHT',
-                ),
-            ],
+            actions: ['createBrowserStatusNotification'],
+          },
+          UPDATED_FETCHER_STATUS: {
+            actions: ['addItemToQueue'],
           },
           NOTIFICATION_DONE: [
             {
@@ -180,6 +181,15 @@ export const notificationsMachine = createMachine(
         },
         { to: choreographerMachine },
       ),
+      subscribeToFetchServiceWorker: send(
+        {
+          type: 'SUBSCRIBE_TO_SERVICE_WORKER',
+          data: {
+            workerId: fetchServiceWorkerId,
+          },
+        },
+        { to: choreographerMachine },
+      ),
       addItemToQueue: assign({
         queue: (ctx, { data }) => [...ctx.queue, { ...data }],
       }),
@@ -201,7 +211,7 @@ export const notificationsMachine = createMachine(
         ],
       }),
       removeOldestNotification: assign({
-        showing: (ctx, event) => {
+        showing: (ctx) => {
           ctx.showing[0].stop()
           return ctx.showing.length === 2 ? [ctx.showing[1]] : []
         },

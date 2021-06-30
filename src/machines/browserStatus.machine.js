@@ -1,5 +1,6 @@
 import { createMachine, assign, send } from 'xstate'
 import { choreographerMachine } from './choreographer.machine'
+import { fetchServiceWorkerId } from './ServiceWorkerIds'
 
 /**
  * Browser Status
@@ -92,7 +93,11 @@ export const browserStatusMachine = createMachine(
         },
         on: {
           UPDATED_BROWSER_STATUS: {
-            actions: ['storeUpdatedStatus', 'sendSubscribers'],
+            actions: [
+              'storeUpdatedStatus',
+              'sendSubscribers',
+              'sendServiceWorker',
+            ],
           },
         },
       },
@@ -105,6 +110,17 @@ export const browserStatusMachine = createMachine(
         (ctx) => ({
           type: 'NOTIFY_SUBSCRIBERS',
           publisherId: browserStatusMachineId,
+          payload: {
+            type: 'UPDATED_BROWSER_STATUS',
+            data: { ...ctx },
+          },
+        }),
+        { to: choreographerMachine },
+      ),
+      sendServiceWorker: send(
+        (ctx) => ({
+          type: 'SEND_SERVICE_WORKER',
+          workerId: fetchServiceWorkerId,
           payload: {
             type: 'UPDATED_BROWSER_STATUS',
             data: { ...ctx },

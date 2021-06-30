@@ -22,11 +22,19 @@ const choreographerMachineDef = createMachine(
         actions: ['notifySubscribers'],
       },
       REGISTER_SERVER_WORKER: {
+        actions: ['storeServerWorkerRef'],
+      },
+      SUBSCRIBE_TO_SERVICE_WORKER: {
         actions: [
-          'storeServerWorkerRef',
-          (_, event, { _event }) =>
-            console.log('REGISTER_SERVER_WORKER', event, _event),
+          'addSubscriberToServiceWorker',
+          'respondToSubscriptionRequest',
         ],
+      },
+      SEND_SERVICE_WORKER: {
+        actions: ['sendToWorkerOrigin'],
+      },
+      NOTIFY_WORKER_SUBSCRIBERS: {
+        actions: ['notifyWorkerSubscribers'],
       },
     },
     states: {
@@ -63,9 +71,7 @@ const choreographerMachineDef = createMachine(
             ...actors,
             [actorId]: {
               ref,
-              subscribers: subscribers.length
-                ? [...subscribers, origin]
-                : [origin],
+              subscribers: [...subscribers, origin],
             },
           }
         },
@@ -81,19 +87,39 @@ const choreographerMachineDef = createMachine(
         workers: ({ workers }, { data }, { _event }) => {
           const { origin } = _event
           const { workerId } = data
-          const { ref, subscribers } = workers[origin]
 
           return {
             ...workers,
-            [origin]: {
-              ref,
-              workerId,
-              subscribers: subscribers.length
-                ? [...subscribers, origin]
-                : [origin],
+            [workerId]: {
+              ref: origin,
+              subscribers: [],
             },
           }
         },
+      }),
+      addSubscriberToServiceWorker: assign({
+        workers: ({ workers }, { data }, { _event }) => {
+          const { origin } = _event
+          const { workerId } = data
+          const { ref, subscribers } = workers[workerId]
+
+          return {
+            ...workers,
+            [workerId]: {
+              ref,
+              subscribers: [...subscribers, origin],
+            },
+          }
+        },
+      }),
+      sendToWorkerOrigin: send((_ctx, event) => event, {
+        to: (ctx, { workerId }) => ctx.workers[workerId].ref,
+      }),
+      notifyWorkerSubscribers: pure(({ workers }, { publisherId, payload }) => {
+        const { subscribers } = workers[publisherId]
+        return subscribers.map((subscriber) =>
+          send(payload, { to: subscriber }),
+        )
       }),
     },
   },

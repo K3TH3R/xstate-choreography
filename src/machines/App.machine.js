@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate'
+import { assign, createMachine, forwardTo, send } from 'xstate'
 import {
   browserStatusMachine,
   browserStatusMachineId,
@@ -7,9 +7,14 @@ import {
   notificationsMachine,
   notificationsMachineId,
 } from './notifications.machine'
-import { registerActors, registerServiceWorker } from './choreographer.machine'
+import {
+  choreographerMachine,
+  registerActors,
+  registerServiceWorker,
+} from './choreographer.machine'
 import { invokeWebWorker } from '../workers/invoke-worker'
 import FetchWorker from '../workers/fetch-worker?worker'
+import { fetchServiceWorkerId } from './ServiceWorkerIds'
 
 export const appMachineId = 'appMachine'
 
@@ -32,12 +37,20 @@ export const appMachine = createMachine(
       actors: {},
     },
     invoke: {
-      id: 'fetchServiceWorker',
+      id: fetchServiceWorkerId,
       src: invokeWebWorker(new FetchWorker()),
+    },
+    on: {
+      SEND_SERVICE_WORKER: {
+        actions: ['forwardToWorker'],
+      },
+      NOTIFY_WORKER_SUBSCRIBERS: {
+        actions: ['forwardToChoreographer'],
+      },
     },
     states: {
       idle: {
-        entry: ['registerActors', 'registerFetchWorker'],
+        entry: ['registerFetchWorker', 'registerActors'],
         on: {
           RETURN_ACTOR_REF: {
             actions: ['storeActorRef'],
@@ -56,8 +69,15 @@ export const appMachine = createMachine(
         }),
       }),
       registerFetchWorker: registerServiceWorker({
-        workerId: 'fetchServiceWorker',
+        workerId: fetchServiceWorkerId,
       }),
+      forwardToWorker: send(
+        (_ctx, { payload }) => ({
+          ...payload,
+        }),
+        { to: (_ctx, { workerId }) => workerId },
+      ),
+      forwardToChoreographer: forwardTo(choreographerMachine),
     },
   },
 )
