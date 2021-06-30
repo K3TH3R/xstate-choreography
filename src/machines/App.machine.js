@@ -7,7 +7,9 @@ import {
   notificationsMachine,
   notificationsMachineId,
 } from './notifications.machine'
-import { registerActors } from './choreographer.machine'
+import { registerActors, registerServiceWorker } from './choreographer.machine'
+import { invokeWebWorker } from '../workers/invoke-worker'
+import FetchWorker from '../workers/fetch-worker?worker'
 
 export const appMachineId = 'appMachine'
 
@@ -29,12 +31,16 @@ export const appMachine = createMachine(
     context: {
       actors: {},
     },
+    invoke: {
+      id: 'fetchServiceWorker',
+      src: invokeWebWorker(new FetchWorker()),
+    },
     states: {
       idle: {
-        entry: ['registerActors'],
+        entry: ['registerActors', 'registerFetchWorker'],
         on: {
           RETURN_ACTOR_REF: {
-            actions: ['storeActorRef', (ctx) => console.log('RETURNED', ctx)],
+            actions: ['storeActorRef'],
           },
         },
       },
@@ -48,6 +54,9 @@ export const appMachine = createMachine(
           ...ctx.actors,
           [data.id]: data.ref,
         }),
+      }),
+      registerFetchWorker: registerServiceWorker({
+        workerId: 'fetchServiceWorker',
       }),
     },
   },

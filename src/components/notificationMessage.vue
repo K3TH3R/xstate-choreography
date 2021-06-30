@@ -12,15 +12,11 @@
       shadow-lg
       border border-solid
     "
-    :class="[
-      state.context.message.type === 'success'
-        ? 'bg-positive-800 border-positive-700'
-        : 'bg-negative-800 border-negative-700',
-    ]"
+    :class="messageClasses.container"
   >
     <div class="relative z-10 text-gray-50 text-sm text-center w-full">
-      {{ state.context.message.msg }}
-      {{ state.context.message.createdAt }}
+      {{ state.context.message.msg }}<br />
+      {{ created }}
     </div>
     <div
       @click="send('DISMISS')"
@@ -38,11 +34,7 @@
         transition-transform
         opacity-75
       "
-      :class="[
-        state.context.message.type === 'success'
-          ? 'bg-positive-900'
-          : 'bg-negative-900',
-      ]"
+      :class="messageClasses.timer"
       :style="`--tw-translate-x: ${state.context.timerWidth}%;`"
     ></div>
   </div>
@@ -50,6 +42,8 @@
 
 <script>
 import { useActor } from '@xstate/vue'
+import { reactive } from '@vue/reactivity'
+
 export default {
   props: {
     messageActor: {
@@ -59,10 +53,41 @@ export default {
   },
   setup(props) {
     const { state, send } = useActor(props.messageActor)
+    const { type, createdAt } = state.value.context.message
+    let messageClasses
+
+    const d = new Date(createdAt)
+    const hrs = d.getHours()
+    const hours = hrs % 12 === 0 ? 12 : hrs
+    const min = d.getMinutes()
+    const minutes = min < 10 ? `0${min}` : min
+    const sec = d.getSeconds()
+    const seconds = sec < 10 ? `0${sec}` : sec
+    const ampm = d.getHours() > 12 ? 'PM' : 'AM'
+    const created = `${hours}:${minutes}:${seconds} ${ampm}`
+
+    if (type === 'success') {
+      messageClasses = reactive({
+        container: 'bg-positive-800 border-positive-700',
+        timer: 'bg-positive-900',
+      })
+    } else if (type === 'warning') {
+      messageClasses = reactive({
+        container: 'bg-warning-800 border-warning-700',
+        timer: 'bg-warning-900',
+      })
+    } else {
+      messageClasses = reactive({
+        container: 'bg-negative-800 border-negative-700',
+        timer: 'bg-negative-900',
+      })
+    }
 
     return {
       state,
       send,
+      messageClasses,
+      created,
     }
   },
 }
