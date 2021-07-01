@@ -71,12 +71,9 @@ export const appMachine = createMachine(
       registerFetchWorker: registerServiceWorker({
         workerId: fetchServiceWorkerId,
       }),
-      forwardToWorker: send(
-        (_ctx, { payload }) => ({
-          ...payload,
-        }),
-        { to: (_ctx, { workerId }) => workerId },
-      ),
+      forwardToWorker: send((_ctx, { payload }) => ({ ...payload }), {
+        to: (_ctx, { workerId }) => workerId,
+      }),
       forwardToChoreographer: forwardTo(choreographerMachine),
     },
   },

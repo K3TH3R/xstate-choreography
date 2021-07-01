@@ -57,34 +57,34 @@ export const notificationsMachine = createMachine(
       queue: [],
       showing: [],
     },
-    invoke: {
-      src: () => (sendSelf) => {
-        function blitzNotifications() {
-          let count = 0
-          const blitzInterval = setInterval(() => {
-            sendSelf({
-              type: 'ADD_TO_QUEUE',
-              data: {
-                msg: 'This is a new message',
-                createdAt: Date.now(),
-                type: Math.random() > 0.5 ? 'success' : 'error',
-              },
-            })
-            if (++count >= 5) {
-              console.log('blitz cleared')
-              clearInterval(blitzInterval)
-            }
-          }, 1000)
-        }
+    // invoke: {
+    //   src: () => (sendSelf) => {
+    //     function blitzNotifications() {
+    //       let count = 0
+    //       const blitzInterval = setInterval(() => {
+    //         sendSelf({
+    //           type: 'ADD_TO_QUEUE',
+    //           data: {
+    //             msg: 'This is a new message',
+    //             createdAt: Date.now(),
+    //             type: Math.random() > 0.5 ? 'success' : 'error',
+    //           },
+    //         })
+    //         if (++count >= 5) {
+    //           console.log('blitz cleared')
+    //           clearInterval(blitzInterval)
+    //         }
+    //       }, 1000)
+    //     }
 
-        blitzNotifications()
-        // const minuteInterval = setInterval(() => {
-        //   blitzNotifications()
-        // }, 60000)
+    //     blitzNotifications()
+    //     // const minuteInterval = setInterval(() => {
+    //     //   blitzNotifications()
+    //     // }, 60000)
 
-        // return () => clearInterval(minuteInterval)
-      },
-    },
+    //     // return () => clearInterval(minuteInterval)
+    //   },
+    // },
     states: {
       boot: {
         entry: [

@@ -11,11 +11,17 @@ const fetchWorkerMachine = createMachine(
         {
           cond: 'isOnline',
           target: 'online',
-          actions: ['sendOnlineNotification'],
+          actions: [
+            'sendOnlineNotification',
+            () => console.log('sendOnlineNotification', Date.now()),
+          ],
         },
         {
           target: 'offline',
-          actions: ['sendOfflineNotification'],
+          actions: [
+            'sendOfflineNotification',
+            () => console.log('sendOfflineNotification', Date.now()),
+          ],
         },
       ],
     },
@@ -29,7 +35,7 @@ const fetchWorkerMachine = createMachine(
       isOnline: (_ctx, { data }) => data.online && data.visible && data.focused,
     },
     actions: {
-      sendOnlineNotification: sendParent({
+      sendOnlineNotification: sendParent(() => ({
         type: 'NOTIFY_WORKER_SUBSCRIBERS',
         publisherId: fetchServiceWorkerId,
         payload: {
@@ -40,8 +46,8 @@ const fetchWorkerMachine = createMachine(
             createdAt: Date.now(),
           },
         },
-      }),
-      sendOfflineNotification: sendParent({
+      })),
+      sendOfflineNotification: sendParent(() => ({
         type: 'NOTIFY_WORKER_SUBSCRIBERS',
         publisherId: fetchServiceWorkerId,
         payload: {
@@ -52,7 +58,7 @@ const fetchWorkerMachine = createMachine(
             createdAt: Date.now(),
           },
         },
-      }),
+      })),
     },
   },
 )
