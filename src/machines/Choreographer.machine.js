@@ -124,7 +124,7 @@ const choreographerMachineDef = createMachine(
           send(payload, { to: subscriber }),
         )
       }),
-      sendToActor: send((ctx, { payload, actorId }) => payload, {
+      sendToActor: send((ctx, { payload }) => payload, {
         to: (ctx, { actorId }) => ctx.actors[actorId].ref,
       }),
     },
