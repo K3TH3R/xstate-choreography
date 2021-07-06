@@ -11,17 +11,11 @@ const fetchWorkerMachine = createMachine(
         {
           cond: 'isOnline',
           target: 'online',
-          actions: [
-            'sendOnlineNotification',
-            () => console.log('sendOnlineNotification', Date.now()),
-          ],
+          actions: ['sendOnlineNotification'],
         },
         {
           target: 'offline',
-          actions: [
-            'sendOfflineNotification',
-            () => console.log('sendOfflineNotification', Date.now()),
-          ],
+          actions: ['sendOfflineNotification'],
         },
       ],
     },

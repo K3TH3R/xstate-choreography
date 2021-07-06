@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="h-full">
     <div class="flex justify-between items-center bg-gray-800 py-4 px-8">
       <div class="flex justify-center items-center">
         <img class="h-8 w-auto pr-4" :src="XStateLogo" alt="Workflow" />
@@ -7,7 +7,9 @@
       </div>
       <BrowserStatus />
     </div>
-    <router-view></router-view>
+    <div class="h-full w-full flex justify-center items-center">
+      <Display />
+    </div>
     <Notifications />
   </div>
 </template>
@@ -24,11 +26,13 @@ import {
 } from './machines/choreographer.machine'
 import BrowserStatus from './components/browserStatus.vue'
 import Notifications from './components/notifications.vue'
+import Display from './components/display.vue'
 
 export default defineComponent({
   components: {
     BrowserStatus,
     Notifications,
+    Display,
   },
   setup() {
     const app = useMachine(appMachine, {

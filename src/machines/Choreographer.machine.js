@@ -36,6 +36,9 @@ const choreographerMachineDef = createMachine(
       NOTIFY_WORKER_SUBSCRIBERS: {
         actions: ['notifyWorkerSubscribers'],
       },
+      SEND_TO_ACTOR: {
+        actions: ['sendToActor'],
+      },
     },
     states: {
       idle: {},
@@ -120,6 +123,9 @@ const choreographerMachineDef = createMachine(
         return subscribers.map((subscriber) =>
           send(payload, { to: subscriber }),
         )
+      }),
+      sendToActor: send((ctx, { payload, actorId }) => payload, {
+        to: (ctx, { actorId }) => ctx.actors[actorId].ref,
       }),
     },
   },

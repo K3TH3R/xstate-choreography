@@ -12,6 +12,8 @@ import {
   registerActors,
   registerServiceWorker,
 } from './choreographer.machine'
+import { counterMachine, counterMachineId } from './counter.machine'
+import { displayMachine, displayMachineId } from './display.machine'
 import { invokeWebWorker } from '../workers/invoke-worker'
 import FetchWorker from '../workers/fetch-worker?worker'
 import { fetchServiceWorkerId } from './ServiceWorkerIds'
@@ -26,6 +28,14 @@ const actorConfig = [
   {
     def: notificationsMachine,
     id: notificationsMachineId,
+  },
+  {
+    def: counterMachine,
+    id: counterMachineId,
+  },
+  {
+    def: displayMachine,
+    id: displayMachineId,
   },
 ]
 
