@@ -8,7 +8,7 @@
       <BrowserStatus />
     </div>
     <div class="h-full w-full flex justify-center items-center">
-      <Display />
+      <Foo />
     </div>
     <Notifications />
   </div>
@@ -26,13 +26,13 @@ import {
 } from './machines/choreographer.machine'
 import BrowserStatus from './components/browserStatus.vue'
 import Notifications from './components/notifications.vue'
-import Display from './components/display.vue'
+import Foo from './components/foo.vue'
 
 export default defineComponent({
   components: {
     BrowserStatus,
     Notifications,
-    Display,
+    Foo,
   },
   setup() {
     const app = useMachine(appMachine, {
